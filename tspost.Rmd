@@ -9,19 +9,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 There's a lot of data science brouhaha these days: having operated behind the scenes for decades, data scientists are now getting their time in the spotlight. It's the revenge of the nerds, except these nerds are changing how business makes and executes decisions.
 
-When people think about data science they typically imagine someone scanning through humongous datasets, guessing a customer's next move, or making sense out of unstructured text or speech. While these are certainly powerful use cases, what about good old time series analysis? Time series analysis seems to be largely ignored by data science. In fact, you wonder if time series analysis even belongs to data science?
+When people think about data science they typically imagine someone scanning through humongous datasets, guessing a customer's next move, or making sense out of unstructured text or speech. While these are certainly powerful use cases, what about good old time series analysis? This seems to be largely ignored by data science. In fact, you wonder if it even belongs to data science?
 
-Yet time series analysis are often used to answer some of the most critical questions facing companies: demand forecasting for corporate planning and media mix modeling for high-level allocation of the marketing budget, just to name a few. In short, time series analysis is used to directly affect boardroom decisions – it helps determine "how much" and "when" before you get to execution.
+Yet time series analysis are often used to answer some of the most critical questions facing companies: demand forecasting for corporate planning and media mix modeling for high-level allocation of the marketing budget, just to name a few. These types of analyses directly affect boardroom decisions. They help determine "how much" and "when" before you get to execution.
 
-But time series analysis is tricky. You rarely have enough good historical data points to estimate seasonality, trend as well as the impact of known business and external drivers. Model validation is more difficult than it is for a classification model – we can't just apply v-fold cross validation and be done with it. And your audience may not be comfortable with the imbedded uncertainty in your model when it comes to planning. It's art and science, with a heavy slant towards art.
+But modeling time series data can be tricky. You rarely have enough good historical data points to estimate seasonality, trend as well as the impact of known business and external drivers. Model validation is more difficult than it is for a classification model and your audience may not be comfortable with the imbedded uncertainty in your model. It's art and science, with a heavy slant towards art.
 
-Back in January I wrote a post about the `CausalImpact` R package (written by Kay Brodersen at Google) and how it can be integrated with dynamic time warping. In the spirit of bringing more attention to time series analysis in data science blogs, this post will cover the `bsts` R package (written by Steven L. Scott, also at Google), which is used by the `CausalImpact` package to fit Bayesian structural time series models. Bayesian structural time series models are more transparent and practical than ARIMA models – the go-to method for most people – and handles uncertainty better. 
+In the spirit of having more time series stuff in data science blogs, this post will cover the Bayesian structural time series R package called `bsts` written by Steven L. Scott). In my opinion, these types of models models are more transparent and practical than ARIMA models – the go-to method for most people – and handles uncertainty better. 
+
+Note that the `bsts` R package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in a [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
 
 ## Airline Passenger Data
 ### An ARIMA Model
 First, let's start by fitting a classical ARIMA model to the famous airline passenger dataset. The ARIMA model has the following characteristics:
 
-* First order differencing ($d=1$) and a moving average term of order 1 ($q=1)
+* First order differencing ($d=1$) and a moving average term of order 1 ($q=1$)
 * Seasonal differencing and a seasonal MA term.
 * The year of 1960 was used as the holdout period for validation.
 * Using a log transformation to model the growth rate.
@@ -57,13 +59,15 @@ ggplot(data=d1, aes(x=Date)) +
   ggtitle(paste0("ARIMA -- Holdout MAPE = ", round(100*MAPE,2), "%"))
 ```
 
-The holdout MAPE (mean absolute prediction error) is good for this model. However, the model does not tell us much about the time series. We just know that we can fit this data well using a combination of moving averages and lagged terms.
+The holdout MAPE (mean absolute prediction error) is good for this model. However, the model does not tell us much about the time series. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
 
 ### A Bayesian Structural Time Series Model
-A different approach would be to use Bayesian structural time series model with unobserved components:
+A different approach would be to use Bayesian structural time series model with unobserved components. This technique is transparent than ARIMA models and easier to control. It is more transparent because it does not rely differencing, lags and moving averages to fit the data. It is easier to control because we can manage the variance of the components in a Bayesian fashion.
+
+Generally, we can write a Bayesian structual model like this:
 
 $$ Y_t = \mu_t + x_t \beta + S_t + e_t, e_t \sim N(0, \sigma^2_e) $$
-$$ \mu_{t+1} = \mu_t + \nu_t, \nu_t \sim N(0, \sigma^2_{\nu}) $$
+$$ \mu_{t+1} = \mu_t + \nu_t, \nu_t \sim N(0, \sigma^2_{\nu}). $$
 
 Here $x_t$ denotes a set of regressors, $S_t$ represents seasonality, and $\mu_t$ is the *local level* term. The local level term defines how the latent state evolves over time and is often referred to as the *unobserved trend*. Note that that regressor coefficients, seasonality and trend are estimated *simultaneously*, which helps avoid strange coefficient estimates due to spurious relationships (similar in spirit to Granger causality). In addition, the Bayesian nature of this approach facilitates model averaging across many smaller regressions, coefficient shrinkage to promote sparsity as well as the ability to introduce outside priors on the regressor slopes.
 
@@ -129,10 +133,7 @@ ggplot(data=d2, aes(x=Date)) +
   ggtitle(paste0("BSTS -- Holdout MAPE = ", round(100*MAPE,2), "%"))
 ```
 
-Although the holdout MAPE is slightly larger than the ARIMA model, this model does a great job of capturing the growth and seasonality of the air passengers time series. However, it's fair to say that the structural model is more transparent and easier to control than the ARIMA model: it is more transparent because it does not differencing and lags, and it is easier to control because we can manage the variance of the components in a Bayesian fashion.
-
-#### Visualizing Components
-For example, the following example shows how to visualize the components of a structural time series model. Again, when dealing with Bayesian models we have to average across the MCMC draws to get a point estimate:
+Although the holdout MAPE is slightly larger than the ARIMA model, this model does a great job of capturing the growth and seasonality of the air passengers time series. However, one of the big advantages of this model is that we can visualize the underlying components, which is shown in the following example:
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
@@ -167,7 +168,7 @@ ggplot(data=components, aes(x=Date, y=Value)) + geom_line() +
 ```
 
 ## Spike and Slab Priors
-Spike-and-slab prior consist of two parts: the spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). This is typically a product of independent Bernoulli distributions (one for each variable), where the parameters (probability of getting chosen) can be set according to the expected model size. The slab part is a normal-inverse Gamma prior that shrinks the non-zero coefficients toward prior expectations (often zero). For more technical information, see [1].
+Another advantage of Bayesian structural models over ARIMA is the spike-and-slab priors. These consist of two parts: the spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). This is typically a product of independent Bernoulli distributions (one for each variable), where the parameters (probability of getting chosen) can be set according to the expected model size. The slab part is a normal-inverse Gamma prior that shrinks the non-zero coefficients toward prior expectations (often zero). For more technical information, see [1].
 
 Values for the parameters of the Bernoulli trials can be specified through the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model.  
 
@@ -216,7 +217,39 @@ ggplot(data=inclusionprobs, aes(x=Variable, y=value)) +
   xlab("") + ylab("") + ggtitle("Inclusion probabilities")
 ```
 
-The output shows that the mode is dominated by two variables. These variables have the largest coefficients and were selected in 100% of models.
+The output shows that the mode is dominated by two variables. These variables have the largest coefficients and were selected in 100% of models. We can easily visualize the overall contribution of these variables to the model:
+
+```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
+library(lubridate)
+library(bsts)
+library(ggplot2)
+library(reshape2)
+
+### Fit the model with regressors
+data(iclaims)
+ss <- AddLocalLinearTrend(list(), initial.claims$iclaimsNSA)
+ss <- AddSeasonal(ss, initial.claims$iclaimsNSA, nseasons = 52)
+bsts.reg <- bsts(iclaimsNSA ~ ., state.specification = ss, data =
+                initial.claims, niter = 500, ping=0)
+
+### Get the number of burn-ins to discard
+burn <- SuggestBurn(0.1, bsts.reg)
+
+### Get the components
+components.withreg <- cbind.data.frame(
+  colMeans(bsts.reg$state.contributions[-(1:burn),"trend",]),
+  colMeans(bsts.reg$state.contributions[-(1:burn),"seasonal.52.1",]),
+  colMeans(bsts.reg$state.contributions[-(1:burn),"regression",]),
+  as.Date(time(initial.claims)))  
+names(components.withreg) <- c("Trend", "Seasonality", "Regression", "Date")
+components.withreg <- melt(components.withreg, id.vars="Date")
+names(components.withreg) <- c("Date", "Component", "Value")
+
+ggplot(data=components.withreg, aes(x=Date, y=Value)) + geom_line() + 
+  theme_bw() + theme(legend.title = element_blank()) + ylab("") + xlab("") + 
+  facet_grid(Component ~ ., scales="free") + guides(colour=FALSE)
+```
+
 
 ### Including Prior Expectations in Your Model
 In the example above, we used the spike-and-slab prior as a way to select variables and promote sparsity. We were essentially using the "spike" part of the algorithm to select variables and the "slab" part to shrink the coefficients towards zero (like ridge regression). 
