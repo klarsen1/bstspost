@@ -1,6 +1,6 @@
 ---
 title: "The Unobserved Power of Time Series Analysis"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -16,9 +16,7 @@ Yet time series analysis are often used to answer some of the most critical ques
 But modeling time series data can be tricky. You rarely have enough good historical data points to estimate seasonality, trend as well as the impact of known business and external drivers. Model validation is more difficult than it is for a classification model and your audience may not be comfortable with the imbedded uncertainty in your model. In short, when doing time series analysis we're typically faced with the least amount of data and the largest amount of uncertainty, while informing the most important decisions.
 
 ## About this Post
-In the spirit of having more time series stuff in data science blogs, this post will cover the Bayesian structural time series R package called `bsts` written by Steven L. Scott). In my opinion, these types of models models are more transparent and practical than ARIMA models – the go-to method for most people – and handles uncertainty better. 
-
-Note that the `bsts` R package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in a [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
+In the spirit of having more time series stuff in data science blogs, this post will cover the Bayesian structural time series R package called `bsts` (written by Steven L. Scott at Google). In my opinion, these types of models models are more transparent and practical than ARIMA models – the go-to method for most people – and handles uncertainty better. Note that the `bsts` R package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in a [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
 
 ## Airline Passenger Data
 ### An ARIMA Model
@@ -82,7 +80,7 @@ The airline passenger dataset does not have any regressors, and so we'll fit a s
 * Discarding the first MCMC iterations (burn-in).
 * Using a log transformation to make the model multiplicative
 
-The `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the "rows" capture the MCMC iterations. Thus, in order to average across iterations to get a point estimate we can use the `colMeans` or `apply` functions after removing the burn-in. 
+The `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the first dimension capture the MCMC iterations. Thus, in order to average across iterations to get a point estimate we can use the `colMeans` or `apply` functions after removing the burn-in iterations. 
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
@@ -134,7 +132,7 @@ ggplot(data=d2, aes(x=Date)) +
   ggtitle(paste0("BSTS -- Holdout MAPE = ", round(100*MAPE,2), "%"))
 ```
 
-Although the holdout MAPE is slightly larger than the ARIMA model, this model does a great job of capturing the growth and seasonality of the air passengers time series. However, one of the big advantages of this model is that we can visualize the underlying components, which is shown in the following example:
+Although the holdout MAPE is slightly larger than the ARIMA model, this model does a great job of capturing the growth and seasonality of the air passengers time series. Moreover, in contrast to the ARIMA model, one of the big advantages of this model is that we can visualize the underlying components:
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
@@ -169,11 +167,11 @@ ggplot(data=components, aes(x=Date, y=Value)) + geom_line() +
 ```
 
 ## Bayesian Variable Selection
-Another advantage of Bayesian structural models, when compared to ARIMA, is the spike-and-slab priors. These consist of two parts: The *spike* part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). This is typically a product of independent Bernoulli distributions (one for each variable), where the parameters (probability of getting chosen) can be set according to the expected model size. The *slab* part is a normal-inverse Gamma prior that shrinks the non-zero coefficients toward prior expectations (often zero). For more technical information, see [1].
+Another advantage of Bayesian structural models, when compared to ARIMA, is the ability to use spike-and-slab priors. Spike and slab priors provide a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on your model. Moreover, by using priors on the regressor coefficients, we can incorporate the uncertainties of the coefficient estimates when forecasting.
+
+As the name suggests, spike and slab priors consist of two parts: The *spike* part and the *slab* part. The spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). This is typically a product of independent Bernoulli distributions (one for each variable), where the parameters (probability of getting chosen) can be set according to the expected model size. The slab part is a normal-inverse Gamma prior that shrinks the non-zero coefficients toward prior expectations (often zero). For more technical information, see [1].
 
 Values for the parameters of the Bernoulli trials can be specified through the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model.  
-
-Thus spike and slab priors provide a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on your model. Moreover, since this is a Bayesian model, the regressor coefficients follow random distributions and we can incorporate the uncertainties of the coefficient estimates when forecasting.
 
 ### Using Spike and Slab Prior for the Initial Claims Data
 Here's an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component.
