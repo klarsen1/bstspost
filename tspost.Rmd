@@ -9,12 +9,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 There's a lot of data science brouhaha these days: having operated behind the scenes for decades, data scientists are now getting their time in the spotlight. It's the revenge of the nerds, except these nerds are changing how business makes and executes decisions.
 
-When people think about data science they typically imagine someone scanning through humongous datasets, guessing a customer's next move, or making sense out of unstructured text or speech. While these are certainly powerful use cases, what about good old time series analysis? This seems to be largely ignored by data science. In fact, you wonder if it even belongs to data science?
+When people think about data science they typically imagine someone scanning through humongous datasets, guessing a customer's next move, or making sense out of unstructured text or speech. While these are certainly powerful use cases, what about good old time series analysis? This seems to be largely ignored by data science.
 
-Yet time series analysis are often used to answer some of the most critical questions facing companies: demand forecasting for corporate planning and media mix modeling for high-level allocation of the marketing budget, just to name a few. These types of analyses directly affect boardroom decisions. They help determine "how much" and "when" before you get to execution.
+Yet time series analysis are often used to answer some of the most critical questions facing companies: demand forecasting for corporate planning and media mix modeling for high-level allocation of the marketing budget, just to name a few. These types of analyses directly affect boardroom decisions. 
 
-But modeling time series data can be tricky. You rarely have enough good historical data points to estimate seasonality, trend as well as the impact of known business and external drivers. Model validation is more difficult than it is for a classification model and your audience may not be comfortable with the imbedded uncertainty in your model. It's art and science, with a heavy slant towards art.
+But modeling time series data can be tricky. You rarely have enough good historical data points to estimate seasonality, trend as well as the impact of known business and external drivers. Model validation is more difficult than it is for a classification model and your audience may not be comfortable with the imbedded uncertainty in your model. In short, when doing time series analysis we're typically faced with the least amount of data and the largest amount of uncertainty, while informing the most important decisions.
 
+## About this Post
 In the spirit of having more time series stuff in data science blogs, this post will cover the Bayesian structural time series R package called `bsts` written by Steven L. Scott). In my opinion, these types of models models are more transparent and practical than ARIMA models – the go-to method for most people – and handles uncertainty better. 
 
 Note that the `bsts` R package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in a [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
@@ -64,7 +65,7 @@ The holdout MAPE (mean absolute prediction error) is good for this model. Howeve
 ### A Bayesian Structural Time Series Model
 A different approach would be to use Bayesian structural time series model with unobserved components. This technique is transparent than ARIMA models and easier to control. It is more transparent because it does not rely differencing, lags and moving averages to fit the data. It is easier to control because we can manage the variance of the components in a Bayesian fashion.
 
-Generally, we can write a Bayesian structual model like this:
+Generally, we can write a Bayesian structural model like this:
 
 $$ Y_t = \mu_t + x_t \beta + S_t + e_t, e_t \sim N(0, \sigma^2_e) $$
 $$ \mu_{t+1} = \mu_t + \nu_t, \nu_t \sim N(0, \sigma^2_{\nu}). $$
@@ -117,7 +118,7 @@ MAPE <- filter(d2, year(Date)>1959) %>% summarise(MAPE=abs(mean(1-Fitted/Actual)
 posterior.interval <- cbind.data.frame(
   10^as.numeric(predict.bsts(bsts.model, horizon = 12, burn = burn)$interval[1,]),
   10^as.numeric(predict.bsts(bsts.model, horizon = 12)$interval[2,]), 
-  subset(d1, year(Date)>1959)$Date)
+  subset(d2, year(Date)>1959)$Date)
 names(posterior.interval) <- c("LL", "UL", "Date")
 
 ### Join intervals to the forecast
@@ -167,14 +168,17 @@ ggplot(data=components, aes(x=Date, y=Value)) + geom_line() +
   facet_grid(Component ~ ., scales="free") + guides(colour=FALSE)
 ```
 
-## Spike and Slab Priors
-Another advantage of Bayesian structural models over ARIMA is the spike-and-slab priors. These consist of two parts: the spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). This is typically a product of independent Bernoulli distributions (one for each variable), where the parameters (probability of getting chosen) can be set according to the expected model size. The slab part is a normal-inverse Gamma prior that shrinks the non-zero coefficients toward prior expectations (often zero). For more technical information, see [1].
+## Bayesian Variable Selection
+Another advantage of Bayesian structural models, when compared to ARIMA, is the spike-and-slab priors. These consist of two parts: The *spike* part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). This is typically a product of independent Bernoulli distributions (one for each variable), where the parameters (probability of getting chosen) can be set according to the expected model size. The *slab* part is a normal-inverse Gamma prior that shrinks the non-zero coefficients toward prior expectations (often zero). For more technical information, see [1].
 
 Values for the parameters of the Bernoulli trials can be specified through the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model.  
 
 Thus spike and slab priors provide a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on your model. Moreover, since this is a Bayesian model, the regressor coefficients follow random distributions and we can incorporate the uncertainties of the coefficient estimates when forecasting.
 
-Here's an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component. 
+### Using Spike and Slab Prior for the Initial Claims Data
+Here's an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component.
+
+For model selection, we are essentially using the "spike" part of the algorithm to select variables and the "slab" part to shrink the coefficients towards zero (like ridge regression).
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
@@ -252,8 +256,9 @@ ggplot(data=components.withreg, aes(x=Date, y=Value)) + geom_line() +
 
 
 ### Including Prior Expectations in Your Model
-In the example above, we used the spike-and-slab prior as a way to select variables and promote sparsity. We were essentially using the "spike" part of the algorithm to select variables and the "slab" part to shrink the coefficients towards zero (like ridge regression). 
-However, we can also this framework to impose prior beliefs on the model. These prior beliefs could come from an outside study or a previous version of the model. This is done by passing a prior object to `bsts` as created by the `SpikeSlabPrior` function. Here we are specifying a prior of 0.6 on the variable called `unemployment.office` and forcing this variable to be selected by setting its prior spike parameter to 1. We're giving our priors a weight of 200 (measured in observation count), which is fairly large given that the dataset has 456 records. Hence we should expect the posterior to be very close to 0.6.
+In the example above, we used the spike-and-slab prior as a way to select variables and promote sparsity. However, we can also this framework to impose *prior beliefs* on the model. These prior beliefs could come from an outside study or a previous version of the model. This is a rampant use-case in time series regression: due to short or noisy history, you cannot always rely on the data to tell you how known business drivers affect the outcome. 
+
+In the `bsts` package, this is done by passing a prior object as created by the `SpikeSlabPrior` function. In this example we are specifying a prior of 0.6 on the variable called `unemployment.office` and forcing this variable to be selected by setting its prior spike parameter to 1. We're giving our priors a weight of 200 (measured in observation count), which is fairly large given that the dataset has 456 records. Hence we should expect the posterior to be very close to 0.6.
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 prior.spikes <- c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,1,0.1)
@@ -294,9 +299,9 @@ ggplot(data=coeff, aes(x=Variable, y=value)) +
 As we can see, the posterior for `unemployment.office` is being forced towards 0.6.
 
 ## Last Words
-When doing time series analysis, we're typically faced with the least amount of data and the largest amount of uncertainty, while informing the most important decisions. This makes time series analysis once of the most challenging and subjective analytical disciplines. 
+Obviously, there is no silver bullet when it comes to time series analysis. No one has a crystal ball. There are so many internal and external factors that can affect the accuracy of a forecast. In fact, forecasts should be looked at as *scenarios* and not point estimates that are cast in stone.
 
-While there's no silver bullet when it comes to time series analysis, Bayesian structural time series models possesses three key features that you need in order to navigate these treacherous waters:
+Having said that, Bayesian structural time series models possess three key modeling features that you need – in addition to intuition and business knowledge – in order to set yourself up for success:
 
 * Ability to imbed uncertainty into our forecasts so we quantify future risk. 
 * Transparency so we can truly understand how the model works. 
