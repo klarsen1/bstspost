@@ -7,13 +7,13 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-There's a lot of data science brouhaha these days. After decades of operating stealthly in the background, data scientists are now getting their time in the spotlight. It's the revenge of the nerds, except that these nerds have been changing how businesses operate for quite some time.
+There's a lot of data science brouhaha these days. After decades of operating stealthly in the background, data scientists are finally getting their time in the spotlight. It's the revenge of the nerds, except that these nerds have been changing how businesses operate for quite some time.
 
-When people think about data science they typically imagine someone scanning through humongous datasets, guessing a customer's next move, or making sense out of unstructured text or speech. While these are certainly powerful use cases, what about good old time series analysis? This seems to be largely ignored by data science.
+When people think about "data science" – which, granted, is an ill-defined term – they typically imagine someone scanning through humongous datasets, guessing a customer's next move, or making sense out of unstructured text or speech. While these are certainly powerful use cases, what about good old time series analysis? This seems to be largely ignored by data science.
 
 Yet time series analysis are often used to answer some of the most critical questions facing companies: demand forecasting for corporate planning and media mix modeling for high-level allocation of the marketing budget, just to name a few. These types of analyses directly affect boardroom decisions. 
 
-But modeling time series data can be tricky. You rarely have enough good historical data points to estimate seasonality, trend as well as the impact of known business and external drivers. Model validation is more difficult than it is for a classification model and your audience may not be comfortable with the imbedded uncertainty in your model. In short, when doing time series analysis we're typically faced with the least amount of data and the largest amount of uncertainty, while informing the most important decisions.
+But modeling time series data can be tricky. You rarely have enough good historical data points to estimate seasonality, trend as well as the impact of known business drivers. Model validation is more difficult than it is for a classification model and your audience may not be comfortable with the imbedded uncertainty in your model. In short, when doing time series analysis we're typically faced with the least amount of data and the largest amount of uncertainty, while informing the most important decisions.
 
 ## About this Post
 In the spirit of having more time series stuff in data science blogs, this post will cover the Bayesian structural time series R package called `bsts` (written by Steven L. Scott at Google). In my opinion, these types of models models are more transparent and practical than ARIMA models – the go-to method for most people – and handles uncertainty better. Note that the `bsts` R package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in a [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
@@ -61,7 +61,7 @@ ggplot(data=d1, aes(x=Date)) +
 The holdout MAPE (mean absolute prediction error) is good for this model. However, the model does not tell us much about the time series. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
 
 ### A Bayesian Structural Time Series Model
-A different approach would be to use Bayesian structural time series model with unobserved components. This technique is transparent than ARIMA models and easier to control. It is more transparent because it does not rely differencing, lags and moving averages to fit the data. It is easier to control because we can manage the variance of the components in a Bayesian fashion.
+A different approach would be to use Bayesian structural time series model with unobserved components. This technique is transparent than ARIMA models and easier to control. It is more transparent because it does not rely differencing, lags and moving averages to fit the data. It is easier to control because we can manage the variance of the underlying components in a Bayesian fashion.
 
 Generally, we can write a Bayesian structural model like this:
 
@@ -80,7 +80,12 @@ The airline passenger dataset does not have any regressors, and so we'll fit a s
 * Discarding the first MCMC iterations (burn-in).
 * Using a log transformation to make the model multiplicative
 
-The `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the first dimension captures the MCMC iterations. Thus, in order to average across iterations and get a point estimate we can use the `colMeans` or `apply` functions after removing the burn-in iterations. Note that for visualization, I went with `ggplot` for this example in order to demonstrate how to retrieve the output for custom plotting. Alternatively, we can simply use the `plot.bsts` function that comes with the package.  
+Some important notes about the examples in this post:
+
+* When building Bayesian models we get a distribution and not a single answer. In fact, the `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the first dimension is the MCMC iterations. 
+* If we want a point estimate, we can use the `colMeans` or `apply` functions to get the averages after removing the burn-in iterations. 
+* For simplicity, most of my plots below are showing point estimates from averaging. But it's very easy to get distributions from the MCMC draws, and this is recommended in real life to better quantify uncertainty.
+* For visualization, I went with `ggplot` for this example in order to demonstrate how to retrieve the output for custom plotting. Alternatively, we can simply use the `plot.bsts` function that comes with the package.  
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
