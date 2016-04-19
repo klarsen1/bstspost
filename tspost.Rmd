@@ -53,7 +53,7 @@ ggplot(data=d1, aes(x=Date)) +
   ggtitle(paste0("ARIMA -- Holdout MAPE = ", round(100*MAPE,2), "%"))
 ```
 
-This model predicts the holdout data well as measured by the MAPE (mean absolute prediction error). However, the model does not tell us much about the time series. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
+This model predicts the holdout data well as measured by the MAPE (mean absolute percentage error). However, the model does not tell us much about the time series itself. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
 
 ### A Bayesian Structural Time Series Model
 A different approach would be to use Bayesian structural time series model with unobserved components. This technique is transparent than ARIMA models and deals with uncertainty in a more elegant manner. It is more transparent because it does not rely differencing, lags and moving averages to fit the data. You can visually inspect the underlying components of the model. In addition, due to the Bayesian nature of the model, you can quantify the posterior uncertainty of the individual components, control the variance and outside prior beliefs.
@@ -184,11 +184,13 @@ ggplot(data=components, aes(x=Date, y=Value)) + geom_line() +
 ```
 
 ## Bayesian Variable Selection
-Another advantage of Bayesian structural models is the ability to use spike-and-slab priors. This provides a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on your model. Moreover, by using priors on the regressor coefficients we can incorporate the uncertainties of the coefficient estimates when forecasting.
+Another advantage of Bayesian structural models is the ability to use spike-and-slab priors. This provides a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on your model. Moreover, by using priors on the regressor coefficients the model incorporates uncertainties of the coefficient estimates when forecasting.
 
-As the name suggests, spike and slab priors consist of two parts: the *spike* part and the *slab* part. The spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). This is typically a product of independent Bernoulli distributions (one for each variable), where the parameters (probability of getting chosen) can be set according to the expected model size. The slab part is a normal-inverse Gamma prior that shrinks the non-zero coefficients toward prior expectations (often zero). For more technical information, see [1].
+As the name suggests, spike and slab priors consist of two parts: the *spike* part and the *slab* part. The spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). The slab part shrinks the non-zero coefficients toward prior expectations (often zero). Conceptually, we can factorize the spike and slab prior as follows:
 
-Values for the parameters of the Bernoulli trials can be specified through the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model.  
+$$ p(\text{choose variable}, \beta, 1/\sigma^2_{\epsilon}) =  p(\text{choose variable})p(\sigma^2_{\epsilon} \text{ } | \text{ } \text{choice}) p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon}) $$
+
+The probability of choosing a given variable is follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part is a normal-inverse Gamma prior. For more technical information, see [1]. 
 
 ### Using Spike and Slab Prior for the Initial Claims Data
 Here's an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component.
