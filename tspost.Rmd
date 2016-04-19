@@ -7,9 +7,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-When people think about "data science" they probably think of large datasets, predicting a customer's next move, or making sense out of unstructured text. But what about small, time-stamped datasets that are used to predict dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
+When people think of "data science" they probably think of algorithms that scan large datasets to predict a customer's next move, or interpret unstructured text. But what about modesl that utilize small, time-stamped datasets to predict dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
 
-Yet analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. Whether it's demand forecasting for corporate planning or allocation of marketing budgets, the final answers frequently affect boardroom decisions. But you rarely have enough good historical data points to reliably estimate seasonality, trend, as well as the impact of known business drivers – components that you need to understand in order to predict the future or explain the past. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
+Yet analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. For example, time series analysis is frequently used for demand forecasting and corporate planning. This requires understanding seasonality, trend, as well as the impact of all known business drivers. However, you rarely have sufficient historical data to estimate these components with great precision. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
 
 So, how does one navigate such treacherous waters? You need skill, business acumen, luck, and *Bayesian structural time series models*. In my opinion, these models are more transparent than ARIMA – which tends to be the go-to method – and they facilitate better handling of uncertainty, two key features when planning for the future. In this post I will provide a gentle intro the `bsts` R package written by Steven L. Scott at Google. Note that the `bsts` package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in this [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
 
@@ -135,8 +135,6 @@ ggplot(data=d2, aes(x=Date)) +
   ggtitle(paste0("BSTS -- Holdout MAPE = ", round(100*MAPE,2), "%"))
 ```
 
-Although the holdout MAPE is slightly larger than the ARIMA model, this model does a great job of capturing the growth and seasonality of the air passengers time series. 
-
 Note that the `predict.bsts` function automatically supplies the upper and lower limits for a credible interval (95% in our case). We can also access the distribution for all MCMC draws by grabbing the `distribution` matrix (instead of `interval`). Each row in this matrix is one MCMC draw. Here's an example of how to calculate percentiles from the posterior distribution:
 
 ```{r, echo = TRUE, message=FALSE, eval=FALSE, fig.width=7, fig.height=5}
@@ -149,7 +147,7 @@ names(credible.interval) <- c("p75", "Median", "p25", "Date")
 
 ```
 
-One of the big advantages of the Bayesian structural model is that we can visualize the underlying components. In this example, we're using `ggplot` to plot the average of the MCMC draws for the trend and the seasonal components:
+Although the holdout MAPE is larger than the ARIMA model with these settings, this model does a great job of capturing the growth and seasonality of the air passengers time series. However, one of the big advantages of the Bayesian structural model is that we can visualize the underlying components. In this example, we're using `ggplot` to plot the average of the MCMC draws for the trend and the seasonal components:
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
@@ -190,12 +188,12 @@ As the name suggests, spike and slab priors consist of two parts: the *spike* pa
 
 $$ p(\text{choose variable}, \beta, 1/\sigma^2_{\epsilon}) =  p(\text{choose variable})p(\sigma^2_{\epsilon} \text{ } | \text{ } \text{choice}) p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon}) $$
 
-The probability of choosing a given variable is follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part is a normal-inverse Gamma prior. For more technical information, see [1]. 
+The probability of choosing a given variable follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part, $p(\beta)$, is a normal-inverse Gamma prior. For more technical information, see [1]. 
 
 ### Using Spike and Slab Prior for the Initial Claims Data
 Here's an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component.
 
-For model selection, we are essentially using the "spike" part of the algorithm to select variables and the "slab" part to shrink the coefficients towards zero (like ridge regression).
+For model selection, we are essentially using the "spike" part of the algorithm to select variables and the "slab" part to shrink the coefficients towards zero (akin to ridge regression).
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
@@ -214,7 +212,7 @@ bsts.reg <- bsts(iclaimsNSA ~ ., state.specification = ss, data =
 burn <- SuggestBurn(0.1, bsts.reg)
 
 ### Helper function to get the positive mean of a vector
-HelperFunction <- function(b) {
+PositiveMean <- function(b) {
   b <- b[abs(b) > 0]
   if (length(b) > 0) 
     return(mean(b))
@@ -222,7 +220,7 @@ HelperFunction <- function(b) {
 }
 
 ### Average coefficient across all models
-coeff <- data.frame(melt(apply(bsts.reg$coefficients[-(1:burn),], 2, HelperFunction)))
+coeff <- data.frame(melt(apply(bsts.reg$coefficients[-(1:burn),], 2, PositiveMean)))
 coeff$Variable <- as.character(row.names(coeff))
 ggplot(data=coeff, aes(x=Variable, y=value)) + 
   geom_bar(stat="identity", position="identity") + 
@@ -238,17 +236,17 @@ ggplot(data=inclusionprobs, aes(x=Variable, y=value)) +
   xlab("") + ylab("") + ggtitle("Inclusion probabilities")
 ```
 
-The output shows that the model is dominated by two variables. These variables have the largest average coefficients and were selected in 100% of models. Note that if we want to inspect the distributions of the coefficients, we can can simply calculate quantiles instead if the mean inside the helper function above:
+The output shows that the model is dominated by two variables: `unemployment.office` and `idaho.unemployment`. These variables have the largest average coefficients and were selected in 100% of models. Note that if we want to inspect the distributions of the coefficients, we can can simply calculate quantiles instead if the mean inside the helper function above:
 
 ```{r, echo = TRUE, message=FALSE, eval=FALSE, fig.width=7, fig.height=5}
-HelperFunction <- function(b) {
+P75 <- function(b) {
   b <- b[abs(b) > 0]
   if (length(b) > 0) 
     return(quantile(b, 0.75))
   return(0)
 }
 
-p75 <- data.frame(melt(apply(bsts.reg$coefficients[-(1:burn),], 2, HelperFunction)))
+p75 <- data.frame(melt(apply(bsts.reg$coefficients[-(1:burn),], 2, P75)))
 ```
 
 And, we can easily visualize the overall contribution of these variables to the model:
@@ -302,7 +300,7 @@ prior.spikes <- c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,1,0.1)
 prior.mean <- c(0,0,0,0,0,0,0,0,0,0.6,0)
 
 ### Helper function to get the positive mean of a vector
-HelperFunction <- function(b) {
+PositiveMean <- function(b) {
   b <- b[abs(b) > 0]
   if (length(b) > 0) 
     return(mean(b))
@@ -325,7 +323,7 @@ bsts.reg.priors <- bsts(iclaimsNSA ~ ., state.specification = ss,
                         prior=prior, 
                         ping=0, seed=2016)
 
-coeff <- data.frame(melt(apply(bsts.reg.priors$coefficients[-(1:burn),], 2, HelperFunction)))
+coeff <- data.frame(melt(apply(bsts.reg.priors$coefficients[-(1:burn),], 2, PositiveMean)))
 coeff$Variable <- as.character(row.names(coeff))
 ggplot(data=coeff, aes(x=Variable, y=value)) + 
   geom_bar(stat="identity", position="identity") + 
