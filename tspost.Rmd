@@ -7,7 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-When people think of "data science" they probably think of algorithms that scan large datasets to predict a customer's next move, or interpret unstructured text. But what about modesl that utilize small, time-stamped datasets to predict dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
+When people think of "data science" they probably think of algorithms that scan large datasets to predict a customer's next move or interpret unstructured text. But what about models that utilize small, time-stamped datasets to predict dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
 
 Yet analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. For example, time series analysis is frequently used for demand forecasting and corporate planning. This requires understanding seasonality, trend, as well as the impact of all known business drivers. However, you rarely have sufficient historical data to estimate these components with great precision. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
 
