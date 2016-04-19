@@ -7,9 +7,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-When people think of "data science" they probably think of algorithms that scan large datasets to predict a customer's next move or interpret unstructured text. But what about models that utilize small, time-stamped datasets to predict dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
+When people think of "data science" they probably think of algorithms that scan large datasets to predict a customer's next move or interpret unstructured text. But what about models that utilize small, time-stamped datasets to forecast dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
 
-Yet analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. For example, time series analysis is frequently used for demand forecasting and corporate planning. This requires understanding seasonality, trend, as well as the impact of all known business drivers. However, you rarely have sufficient historical data to estimate these components with great precision. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
+Yet analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. For example, time series analysis is frequently used for demand forecasting and corporate planning, which requires an understanding of seasonality, trend, as well as the impact of known business drivers. But here lies the problem: you rarely have sufficient historical data to estimate these components with great precision. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
 
 So, how does one navigate such treacherous waters? You need skill, business acumen, luck, and *Bayesian structural time series models*. In my opinion, these models are more transparent than ARIMA – which tends to be the go-to method – and they facilitate better handling of uncertainty, two key features when planning for the future. In this post I will provide a gentle intro the `bsts` R package written by Steven L. Scott at Google. Note that the `bsts` package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in this [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
 
@@ -50,7 +50,8 @@ ggplot(data=d1, aes(x=Date)) +
   theme_bw() + theme(legend.title = element_blank()) + 
   ylab("") + xlab("") +
   geom_vline(xintercept=as.numeric(as.Date("1959-12-01")), linetype=2) +
-  ggtitle(paste0("ARIMA -- Holdout MAPE = ", round(100*MAPE,2), "%"))
+  ggtitle(paste0("ARIMA -- Holdout MAPE = ", round(100*MAPE,2), "%")) + 
+  theme(axis.text.x=element_text(angle = -90, hjust = 0))
 ```
 
 This model predicts the holdout data well as measured by the MAPE (mean absolute percentage error). However, the model does not tell us much about the time series itself. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
@@ -132,7 +133,8 @@ ggplot(data=d2, aes(x=Date)) +
   theme_bw() + theme(legend.title = element_blank()) + ylab("") + xlab("") +
   geom_vline(xintercept=as.numeric(as.Date("1959-12-01")), linetype=2) + 
   geom_ribbon(aes(ymin=LL, ymax=UL), fill="grey", alpha=0.5) +
-  ggtitle(paste0("BSTS -- Holdout MAPE = ", round(100*MAPE,2), "%"))
+  ggtitle(paste0("BSTS -- Holdout MAPE = ", round(100*MAPE,2), "%")) +
+  theme(axis.text.x=element_text(angle = -90, hjust = 0))
 ```
 
 Note that the `predict.bsts` function automatically supplies the upper and lower limits for a credible interval (95% in our case). We can also access the distribution for all MCMC draws by grabbing the `distribution` matrix (instead of `interval`). Each row in this matrix is one MCMC draw. Here's an example of how to calculate percentiles from the posterior distribution:
@@ -178,7 +180,8 @@ names(components) <- c("Date", "Component", "Value")
 ### Plot
 ggplot(data=components, aes(x=Date, y=Value)) + geom_line() + 
   theme_bw() + theme(legend.title = element_blank()) + ylab("") + xlab("") + 
-  facet_grid(Component ~ ., scales="free") + guides(colour=FALSE)
+  facet_grid(Component ~ ., scales="free") + guides(colour=FALSE) + 
+  theme(axis.text.x=element_text(angle = -90, hjust = 0))
 ```
 
 ## Bayesian Variable Selection
@@ -188,7 +191,7 @@ As the name suggests, spike and slab priors consist of two parts: the *spike* pa
 
 $$ p(\text{choose variable}, \beta, 1/\sigma^2_{\epsilon}) =  p(\text{choose variable})p(\sigma^2_{\epsilon} \text{ } | \text{ } \text{choice}) p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon}) $$
 
-The probability of choosing a given variable follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part, $p(\beta)$, is a normal-inverse Gamma prior. For more technical information, see [1]. 
+The probability of choosing a given variable follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part, $p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon})$, is a normal-inverse Gamma prior. For more technical information, see [1]. 
 
 ### Using Spike and Slab Prior for the Initial Claims Data
 Here's an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component.
@@ -279,7 +282,8 @@ names(components.withreg) <- c("Date", "Component", "Value")
 
 ggplot(data=components.withreg, aes(x=Date, y=Value)) + geom_line() + 
   theme_bw() + theme(legend.title = element_blank()) + ylab("") + xlab("") + 
-  facet_grid(Component ~ ., scales="free") + guides(colour=FALSE)
+  facet_grid(Component ~ ., scales="free") + guides(colour=FALSE) + 
+  theme(axis.text.x=element_text(angle = -90, hjust = 0))
 ```
 
 
