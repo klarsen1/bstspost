@@ -7,11 +7,11 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-When people think about "data science" they typically imagine someone scanning through large datasets, predicting a customer's next move, or making sense out of unstructured text. But what about analyzing small, time-stamped datasets in order to predict dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
+When people think about "data science" they probably think of large datasets, predicting a customer's next move, or making sense out of unstructured text. But what about small, time-stamped datasets that are used to predict dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
 
-Yet time series analysis presents some of the hardest analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. Whether it's demand forecasting for corporate planning or allocation of marketing budgets, the final answers frequently affect boardroom decisions. But you rarely have enough good historical data points to reliably estimate seasonality, trend as well as the impact of known business drivers – components that you need to understand in order to predict the future or explain the past. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty
+Yet analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. Whether it's demand forecasting for corporate planning or allocation of marketing budgets, the final answers frequently affect boardroom decisions. But you rarely have enough good historical data points to reliably estimate seasonality, trend, as well as the impact of known business drivers – components that you need to understand in order to predict the future or explain the past. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
 
-So, how does one navigate such treacherous waters? You need skill, business intuition, luck, and *Bayesian structural time series models*. In my opinion, Bayesian structural time series models are more transparent than ARIMA – which tends to be the go-to method – and facilitate better handling of uncertainty, two key features when planning for the future. In this post will cover the `bsts` R package written by Steven L. Scott at Google. Note that the `bsts` package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in a [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
+So, how does one navigate such treacherous waters? You need skill, business acumen, luck, and *Bayesian structural time series models*. In my opinion, these models are more transparent than ARIMA – which tends to be the go-to method – and they facilitate better handling of uncertainty, two key features when planning for the future. In this post I will provide a gentle intro the `bsts` R package written by Steven L. Scott at Google. Note that the `bsts` package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in this [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
 
 ## Airline Passenger Data
 ### An ARIMA Model
@@ -53,7 +53,7 @@ ggplot(data=d1, aes(x=Date)) +
   ggtitle(paste0("ARIMA -- Holdout MAPE = ", round(100*MAPE,2), "%"))
 ```
 
-This model predicts the holdout data well as measureed by the MAPE (mean absolute prediction error). However, the model does not tell us much about the time series. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
+This model predicts the holdout data well as measured by the MAPE (mean absolute prediction error). However, the model does not tell us much about the time series. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
 
 ### A Bayesian Structural Time Series Model
 A different approach would be to use Bayesian structural time series model with unobserved components. This technique is transparent than ARIMA models and deals with uncertainty in a more elegant manner. It is more transparent because it does not rely differencing, lags and moving averages to fit the data. You can visually inspect the underlying components of the model. In addition, due to the Bayesian nature of the model, you can quantify the posterior uncertainty of the individual components, control the variance and outside prior beliefs.
@@ -284,7 +284,7 @@ ggplot(data=components.withreg, aes(x=Date, y=Value)) + geom_line() +
 
 
 ### Including Prior Expectations in Your Model
-In the example above, we used the spike-and-slab prior as a way to select variables and promote sparsity. However, we can also use this framework to impose *prior beliefs* on the model. These prior beliefs could come from an outside study or a previous version of the model. This is a common use-case in time series regression. dDue to short or noisy history, we cannot always rely on the data at hand to tell you how known business drivers affect the outcome. 
+In the example above, we used the spike-and-slab prior as a way to select variables and promote sparsity. However, we can also use this framework to impose *prior beliefs* on the model. These prior beliefs could come from an outside study or a previous version of the model. This is a common use-case in time series regression; we cannot always rely on the data at hand to tell you how known business drivers affect the outcome. 
 
 In the `bsts` package, this is done by passing a prior object as created by the `SpikeSlabPrior` function. In this example we are specifying a prior of 0.6 on the variable called `unemployment.office` and forcing this variable to be selected by setting its prior spike parameter to 1. We're giving our priors a weight of 200 (measured in observation count), which is fairly large given that the dataset has 456 records. Hence we should expect the posterior to be very close to 0.6.
 
@@ -334,13 +334,13 @@ ggplot(data=coeff, aes(x=Variable, y=value)) +
 As we can see, the posterior for `unemployment.office` is being forced towards 0.6 due to the strong prior belief that we imposed on the coefficient.
 
 ## Last Words
-Obviously, there is no silver bullet when it comes to time series analysis. No one has a crystal ball. There are so many internal and external factors that can affect the accuracy of a forecast. In fact, forecasts should be looked at as *scenarios* and not point estimates that are cast in stone.
-
-Having said that, Bayesian structural time series models possess three key modeling features that you need – in addition to intuition and business knowledge – in order to set yourself up for success:
+Bayesian structural time series models possess three key features for modeling of time series data:
 
 * Ability to imbed uncertainty into our forecasts so we quantify future risk. 
 * Transparency so we can truly understand how the model works. 
 * Ability incorporate outside information for known business drivers when we cannot extract the relationships from the data at hand. 
+
+Having said that, there is no silver bullet when it comes to forecasting and scenario planning. No tool or method can remove the imbedded uncertainty or extract clear signals from murky or limited data. Bayesian structural modeling merely maximizes your chances of success. 
 
 # References
 [1] CausalImpact version 1.0.3, Brodersen et al., Annals of Applied Statistics (2015). http://google.github.io/CausalImpact/
