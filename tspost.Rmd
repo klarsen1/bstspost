@@ -1,17 +1,17 @@
 ---
-title: "The Power of Bayesian Structural Time Series Models"
-output: html_document
+title: "Forget ARIMA and Go Bayesian"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-When people think of "data science" they probably think of algorithms that scan large datasets to predict a customer's next move or interpret unstructured text. But what about models that utilize small, time-stamped datasets to forecast dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that has not received the cool "data science" re-branding that many other areas of analytics have enjoyed.
+When people think of "data science" they probably think of algorithms that scan large datasets to predict a customer's next move or interpret unstructured text. But what about models that utilize small, time-stamped datasets to forecast dry metrics such as demand and sales? Yes, I'm talking about good old time series analysis, an ancient discipline that hasn't received the cool "data science" re-branding enjoyed by many other areas of analytics.
 
-Yet analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. For example, time series analysis is frequently used for demand forecasting and corporate planning, which requires an understanding of seasonality, trend, as well as the impact of known business drivers. But here lies the problem: you rarely have sufficient historical data to estimate these components with great precision. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
+Yet, analysis of time series data presents some of the most difficult analytical challenges: you typically have the least amount of data to work with, while needing to inform some of the most important decisions. For example, time series analysis is frequently used for demand forecasting and corporate planning, which requires an understanding of seasonality and trend, as well as quantifying the impact of known business drivers. But herein lies the problem: you rarely have sufficient historical data to estimate these components with great precision. And, to make matters worse, validation is more difficult for time series models than it is for classifiers and your audience may not be comfortable with the imbedded uncertainty.
 
-So, how does one navigate such treacherous waters? You need skill, business acumen, luck, and *Bayesian structural time series models*. In my opinion, these models are more transparent than ARIMA – which tends to be the go-to method – and they facilitate better handling of uncertainty, two key features when planning for the future. In this post I will provide a gentle intro the `bsts` R package written by Steven L. Scott at Google. Note that the `bsts` package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in this [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
+So, how does one navigate such treacherous waters? You need business acumen, luck, and *Bayesian structural time series models*. In my opinion, these models are more transparent than ARIMA – which still tends to be the go-to method. They also facilitate better handling of uncertainty, a key feature when planning for the future. In this post I will provide a gentle intro the `bsts` R package written by Steven L. Scott at Google. Note that the `bsts` package is also being used by the `CausalImpact` package written by Kay Brodersen, which I discussed in this [post from January](http://multithreaded.stitchfix.com/blog/2016/01/13/market-watch/).
 
 ## Airline Passenger Data
 ### An ARIMA Model
@@ -54,17 +54,17 @@ ggplot(data=d1, aes(x=Date)) +
   theme(axis.text.x=element_text(angle = -90, hjust = 0))
 ```
 
-This model predicts the holdout data well as measured by the MAPE (mean absolute percentage error). However, the model does not tell us much about the time series itself. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
+This model predicts the holdout period quite well as measured by the MAPE (mean absolute percentage error). However, the model does not tell us much about the time series itself. In other words, we cannot visualize the "story" of the model. All we know is that we can fit the data well using a combination of moving averages and lagged terms.
 
 ### A Bayesian Structural Time Series Model
-A different approach would be to use Bayesian structural time series model with unobserved components. This technique is transparent than ARIMA models and deals with uncertainty in a more elegant manner. It is more transparent because it does not rely differencing, lags and moving averages to fit the data. You can visually inspect the underlying components of the model. In addition, due to the Bayesian nature of the model, you can quantify the posterior uncertainty of the individual components, control the variance and outside prior beliefs.
+A different approach would be to use Bayesian structural time series model with unobserved components. This technique is more transparent than ARIMA models and deals with uncertainty in a more elegant manner. It is more transparent because it does not rely on differencing, lags and moving averages to fit the data. You can visually inspect the underlying components of the model. It deals with uncertainty in a better way because you can quantify the posterior uncertainty of the individual components, control the variance of the components, and impose prior beliefs on the model. Last, but not least, any ARIMA model can be recast as a structural model.
 
 Generally, we can write a Bayesian structural model like this:
 
 $$ Y_t = \mu_t + x_t \beta + S_t + e_t, e_t \sim N(0, \sigma^2_e) $$
 $$ \mu_{t+1} = \mu_t + \nu_t, \nu_t \sim N(0, \sigma^2_{\nu}). $$
 
-Here $x_t$ denotes a set of regressors, $S_t$ represents seasonality, and $\mu_t$ is the *local level* term. The local level term defines how the latent state evolves over time and is often referred to as the *unobserved trend*. Note that that regressor coefficients, seasonality and trend are estimated *simultaneously*, which helps avoid strange coefficient estimates due to spurious relationships (similar in spirit to Granger causality). In addition, this approach facilitates model averaging across many smaller regressions, as well as coefficient shrinkage to promote sparsity. In addition, given that the slope coefficients, $\beta$, are random we can introduce outside priors on the regressor slopes in case we're not able to get meaningful estimates from the historical data. In short, we have much more control than we do with a classical ARIMA model and thus we're able to handle uncertainty better.
+Here $x_t$ denotes a set of regressors, $S_t$ represents seasonality, and $\mu_t$ is the *local level* term. The local level term defines how the latent state evolves over time and is often referred to as the *unobserved trend*. Note that the regressor coefficients, seasonality and trend are estimated *simultaneously*, which helps avoid strange coefficient estimates due to spurious relationships (similar in spirit to Granger causality). In addition, this approach facilitates model averaging across many smaller regressions, as well as coefficient shrinkage to promote sparsity. Also, given that the slope coefficients, $\beta$, are random we can specify outside priors for the regressor slopes in case we're not able to get meaningful estimates from the historical data.
 
 The airline passenger dataset does not have any regressors, and so we'll fit a simple Bayesian structural model:
 
@@ -75,13 +75,6 @@ The airline passenger dataset does not have any regressors, and so we'll fit a s
 * Credible interval generated from the distribution of the MCMC draws.
 * Discarding the first MCMC iterations (burn-in).
 * Using a log transformation to make the model multiplicative
-
-Some important notes about the examples in this post:
-
-* When building Bayesian models we get a distribution and not a single answer. Thus, the `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the first dimension holds the MCMC iterations. 
-* If we want a point estimate, we can use the `colMeans` or `apply` functions to get the averages after removing the burn-in iterations. 
-* For simplicity, most of the plots below are showing point estimates from averaging. But it's very easy to get distributions from the MCMC draws, and this is recommended in real life to better quantify uncertainty.
-* For visualization, I went with `ggplot` for this example in order to demonstrate how to retrieve the output for custom plotting. Alternatively, we can simply use the `plot.bsts` function that comes with the `bsts` package.  
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
@@ -124,10 +117,10 @@ posterior.interval <- cbind.data.frame(
 names(posterior.interval) <- c("LL", "UL", "Date")
 
 ### Join intervals to the forecast
-d2 <- left_join(d2, posterior.interval, by="Date")
+d3 <- left_join(d2, posterior.interval, by="Date")
 
 ### Plot
-ggplot(data=d2, aes(x=Date)) +
+ggplot(data=d3, aes(x=Date)) +
   geom_line(aes(y=Actual, colour = "Actual"), size=1.2) +
   geom_line(aes(y=Fitted, colour = "Fitted"), size=1.2, linetype=2) +
   theme_bw() + theme(legend.title = element_blank()) + ylab("") + xlab("") +
@@ -137,6 +130,13 @@ ggplot(data=d2, aes(x=Date)) +
   theme(axis.text.x=element_text(angle = -90, hjust = 0))
 ```
 
+Some important notes about the examples in this post:
+
+* When building Bayesian models we get a distribution and not a single answer. Thus, the `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the first dimension holds the MCMC iterations. 
+* If we want a point estimate, we can use the `colMeans` or `apply` functions to get the averages after removing the burn-in iterations. 
+* For simplicity, most of the plots below are showing point estimates from averaging. But it's very easy to get distributions from the MCMC draws, and this is recommended in real life to better quantify uncertainty.
+* For visualization, I went with `ggplot` for this example in order to demonstrate how to retrieve the output for custom plotting. Alternatively, we can simply use the `plot.bsts` function that comes with the `bsts` package.  
+
 Note that the `predict.bsts` function automatically supplies the upper and lower limits for a credible interval (95% in our case). We can also access the distribution for all MCMC draws by grabbing the `distribution` matrix (instead of `interval`). Each row in this matrix is one MCMC draw. Here's an example of how to calculate percentiles from the posterior distribution:
 
 ```{r, echo = TRUE, message=FALSE, eval=FALSE, fig.width=7, fig.height=5}
@@ -144,7 +144,7 @@ credible.interval <- cbind.data.frame(
   10^as.numeric(apply(p$distribution, 2,function(f){quantile(f,0.75)})),
   10^as.numeric(apply(p$distribution, 2,function(f){median(f)})),
   10^as.numeric(apply(p$distribution, 2,function(f){quantile(f,0.25)})),
-  subset(d2, year(Date)>1959)$Date)
+  subset(d3, year(Date)>1959)$Date)
 names(credible.interval) <- c("p75", "Median", "p25", "Date")
 
 ```
@@ -185,13 +185,15 @@ ggplot(data=components, aes(x=Date, y=Value)) + geom_line() +
 ```
 
 ## Bayesian Variable Selection
-Another advantage of Bayesian structural models is the ability to use spike-and-slab priors. This provides a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on your model. Moreover, by using priors on the regressor coefficients the model incorporates uncertainties of the coefficient estimates when forecasting.
+Another advantage of Bayesian structural models is the ability to use spike-and-slab priors. This provides a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on the model. Moreover, by using priors on the regressor coefficients the model incorporates uncertainties of the coefficient estimates when forecasting.
 
-As the name suggests, spike and slab priors consist of two parts: the *spike* part and the *slab* part. The spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). The slab part shrinks the non-zero coefficients toward prior expectations (often zero). Conceptually, we can factorize the spike and slab prior as follows:
+As the name suggests, spike and slab priors consist of two parts: the *spike* part and the *slab* part. The spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). The slab part shrinks the non-zero coefficients toward prior expectations (often zero). Let $\tau$ denote a vector of 1s and 0s where a value of 1 indicates that the variable is selected (non-zero coefficient). Conceptually, we can then factorize the spike and slab prior as follows:
 
-$$ p(\text{choose variable}, \beta, 1/\sigma^2_{\epsilon}) =  p(\text{choose variable})p(\sigma^2_{\epsilon} \text{ } | \text{ } \text{choice}) p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon}) $$
+$$ p(\tau, \beta, 1/\sigma^2_{\epsilon}) =  p(\tau)p(\sigma^2_{\epsilon} \text{ } | \text{ } \tau) p(\beta \text{ } | \text{ } \tau, \sigma^2_{\epsilon}) $$
 
-The probability of choosing a given variable follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part, $p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon})$, is a normal-inverse Gamma prior. For more technical information, see [1]. 
+The probability of choosing a given variable is typically assumed to follow a Bernoulli distribution where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. Alternatively, we can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. 
+
+For the slab part, a normal prior is used for $\beta$ which leads to an inverse Gamma prior for $\sigma^2_{\epsilon}$. The mean is specified through the prior expectations for $\beta$ (zero by default). The tightness of the priors can be expressed in terms of observations worth of weight (demonstrated later). For more technical information see [1]. 
 
 ### Using Spike and Slab Prior for the Initial Claims Data
 Here's an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component.
@@ -350,6 +352,3 @@ Having said that, there is no silver bullet when it comes to forecasting and sce
 [1] CausalImpact version 1.0.3, Brodersen et al., Annals of Applied Statistics (2015). http://google.github.io/CausalImpact/
 
 [2] Predicting the Present with Bayesian Structural Time Series, Steven L. Scott and Hal Varian, http://people.ischool.berkeley.edu/~hal/Papers/2013/pred-present-with-bsts.pdf.
-
-
- 

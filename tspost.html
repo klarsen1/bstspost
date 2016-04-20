@@ -221,10 +221,10 @@ posterior.interval &lt;- cbind.data.frame(
 names(posterior.interval) &lt;- c(&quot;LL&quot;, &quot;UL&quot;, &quot;Date&quot;)
 
 ### Join intervals to the forecast
-d2 &lt;- left_join(d2, posterior.interval, by=&quot;Date&quot;)
+d3 &lt;- left_join(d2, posterior.interval, by=&quot;Date&quot;)
 
 ### Plot
-ggplot(data=d2, aes(x=Date)) +
+ggplot(data=d3, aes(x=Date)) +
   geom_line(aes(y=Actual, colour = &quot;Actual&quot;), size=1.2) +
   geom_line(aes(y=Fitted, colour = &quot;Fitted&quot;), size=1.2, linetype=2) +
   theme_bw() + theme(legend.title = element_blank()) + ylab(&quot;&quot;) + xlab(&quot;&quot;) +
@@ -238,7 +238,7 @@ ggplot(data=d2, aes(x=Date)) +
   10^as.numeric(apply(p$distribution, 2,function(f){quantile(f,0.75)})),
   10^as.numeric(apply(p$distribution, 2,function(f){median(f)})),
   10^as.numeric(apply(p$distribution, 2,function(f){quantile(f,0.25)})),
-  subset(d2, year(Date)&gt;1959)$Date)
+  subset(d3, year(Date)&gt;1959)$Date)
 names(credible.interval) &lt;- c(&quot;p75&quot;, &quot;Median&quot;, &quot;p25&quot;, &quot;Date&quot;)</code></pre>
 <p>Although the holdout MAPE is larger than the ARIMA model with these settings, this model does a great job of capturing the growth and seasonality of the air passengers time series. However, one of the big advantages of the Bayesian structural model is that we can visualize the underlying components. In this example, we’re using <code>ggplot</code> to plot the average of the MCMC draws for the trend and the seasonal components:</p>
 <pre class="r"><code>library(lubridate)
@@ -279,7 +279,7 @@ ggplot(data=components, aes(x=Date, y=Value)) + geom_line() +
 <p>Another advantage of Bayesian structural models is the ability to use spike-and-slab priors. This provides a powerful way of reducing a large set of correlated variables into a parsimonious model, while also imposing prior beliefs on your model. Moreover, by using priors on the regressor coefficients the model incorporates uncertainties of the coefficient estimates when forecasting.</p>
 <p>As the name suggests, spike and slab priors consist of two parts: the <em>spike</em> part and the <em>slab</em> part. The spike part governs the probability of a given variable being chosen for the model (i.e., having a non-zero coefficient). The slab part shrinks the non-zero coefficients toward prior expectations (often zero). Conceptually, we can factorize the spike and slab prior as follows:</p>
 <p><span class="math display">\[ p(\text{choose variable}, \beta, 1/\sigma^2_{\epsilon}) =  p(\text{choose variable})p(\sigma^2_{\epsilon} \text{ } | \text{ } \text{choice}) p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon}) \]</span></p>
-<p>The probability of choosing a given variable follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part, <span class="math inline">\(p(\beta)\)</span>, is a normal-inverse Gamma prior. For more technical information, see [1].</p>
+<p>The probability of choosing a given variable follows a Bernoulli distributions where the parameter can be set according to the expected model size. For example, if the expected model size is 5 and we have 50 potential variables, we could set all spike parameters equal to 0.1. We can also set individual spike parameters to 0 or 1 to force certain variables in or out of the model. The slab part, <span class="math inline">\(p(\beta \text{ } | \text{ } \text{choice}, \sigma^2_{\epsilon})\)</span>, is a normal-inverse Gamma prior. For more technical information, see [1].</p>
 <div id="using-spike-and-slab-prior-for-the-initial-claims-data" class="section level3">
 <h3>Using Spike and Slab Prior for the Initial Claims Data</h3>
 <p>Here’s an example of fitting a model to the initial claims data, which is a weekly time series of US initial claims for unemployment (the first column is the dependent variable, which contains the initial claims numbers from FRED). The model has a trend component, a seasonal component, and a regression component.</p>
