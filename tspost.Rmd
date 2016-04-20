@@ -130,7 +130,7 @@ ggplot(data=d3, aes(x=Date)) +
   theme(axis.text.x=element_text(angle = -90, hjust = 0))
 ```
 
-Some important notes about the `bsts` examples in this post:
+#### Side Notes on the `bsts` Examples in this Post
 
 * When building Bayesian models we get a distribution and not a single answer. Thus, the `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the first dimension holds the MCMC iterations. 
 * For simplicity, most of the plots in this post show point estimates from averaging (using the `colMeans` function). But it's very easy to get distributions from the MCMC draws, and this is recommended in real life to better quantify uncertainty.
@@ -346,6 +346,9 @@ Bayesian structural time series models possess three key features for modeling t
 * Ability to incorporate outside information for known business drivers when we cannot extract the relationships from the data at hand. 
 
 Having said that, there is no silver bullet when it comes to forecasting and scenario planning. No tool or method can remove the imbedded uncertainty or extract clear signals from murky or limited data. Bayesian structural modeling merely maximizes your chances of success. 
+
+## Getting the Code Used in this Post
+[github repo](https://github.com/klarsen1/bstspost). Use the .Rmd file.
 
 # References
 [1] CausalImpact version 1.0.3, Brodersen et al., Annals of Applied Statistics (2015). http://google.github.io/CausalImpact/
