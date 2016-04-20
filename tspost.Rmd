@@ -1,6 +1,6 @@
 ---
 title: "Forget ARIMA and Go Bayesian"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
