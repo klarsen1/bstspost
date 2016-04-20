@@ -133,8 +133,7 @@ ggplot(data=d3, aes(x=Date)) +
 Some important notes about the `bsts` examples in this post:
 
 * When building Bayesian models we get a distribution and not a single answer. Thus, the `bsts` package returns results (e.g., forecasts and components) as matrices or arrays where the first dimension holds the MCMC iterations. 
-* If we want a point estimate, we can use the `colMeans` or `apply` functions to get the averages after removing the burn-in iterations. 
-* For simplicity, most of the plots in this post show point estimates from averaging. But it's very easy to get distributions from the MCMC draws, and this is recommended in real life to better quantify uncertainty.
+* For simplicity, most of the plots in this post show point estimates from averaging (using the `colMeans` function). But it's very easy to get distributions from the MCMC draws, and this is recommended in real life to better quantify uncertainty.
 * For visualization, I went with `ggplot` for this example in order to demonstrate how to retrieve the output for custom plotting. Alternatively, we can simply use the `plot.bsts` function that comes with the `bsts` package.  
 
 Note that the `predict.bsts` function automatically supplies the upper and lower limits for a credible interval (95% in our case). We can also access the distribution for all MCMC draws by grabbing the `distribution` matrix (instead of `interval`). Each row in this matrix is one MCMC draw. Here's an example of how to calculate percentiles from the posterior distribution:
@@ -149,7 +148,7 @@ names(credible.interval) <- c("p75", "Median", "p25", "Date")
 
 ```
 
-Although the holdout MAPE is larger than the ARIMA model with these settings, this model does a great job of capturing the growth and seasonality of the air passengers time series. However, one of the big advantages of the Bayesian structural model is that we can visualize the underlying components. In this example, we're using `ggplot` to plot the average of the MCMC draws for the trend and the seasonal components:
+Although the holdout MAPE is larger than the ARIMA model with these settings, this model also does a great job of capturing the growth and seasonality of the air passengers time series. However, one of the big advantages of the Bayesian structural model is that we can visualize the underlying components. In this example, we're using `ggplot` to plot the average of the MCMC draws for the trend and the seasonal components:
 
 ```{r, echo = TRUE, message=FALSE, eval=TRUE, fig.width=7, fig.height=5}
 library(lubridate)
