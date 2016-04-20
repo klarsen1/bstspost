@@ -241,7 +241,7 @@ ggplot(data=inclusionprobs, aes(x=Variable, y=value)) +
   xlab("") + ylab("") + ggtitle("Inclusion probabilities")
 ```
 
-The output shows that the model is dominated by two variables: `unemployment.office` and `idaho.unemployment`. These variables have the largest average coefficients and were selected in 100% of models. Note that if we want to inspect the distributions of the coefficients, we can can simply calculate quantiles instead if the mean inside the helper function above:
+The output shows that the model is dominated by two variables: `unemployment.office` and `idaho.unemployment`. These variables have the largest average coefficients and were selected in 100% of models. Note that if we want to inspect the distributions of the coefficients, we can can simply calculate quantiles instead of the mean inside the helper function above:
 
 ```{r, echo = TRUE, message=FALSE, eval=FALSE, fig.width=7, fig.height=5}
 P75 <- function(b) {
@@ -340,11 +340,11 @@ ggplot(data=coeff, aes(x=Variable, y=value)) +
 As we can see, the posterior for `unemployment.office` is being forced towards 0.6 due to the strong prior belief that we imposed on the coefficient.
 
 ## Last Words
-Bayesian structural time series models possess three key features for modeling of time series data:
+Bayesian structural time series models possess three key features for modeling time series data:
 
 * Ability to imbed uncertainty into our forecasts so we quantify future risk. 
-* Transparency so we can truly understand how the model works. 
-* Ability incorporate outside information for known business drivers when we cannot extract the relationships from the data at hand. 
+* Transparency, so we can truly understand how the model works. 
+* Ability to incorporate outside information for known business drivers when we cannot extract the relationships from the data at hand. 
 
 Having said that, there is no silver bullet when it comes to forecasting and scenario planning. No tool or method can remove the imbedded uncertainty or extract clear signals from murky or limited data. Bayesian structural modeling merely maximizes your chances of success. 
 
