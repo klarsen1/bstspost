@@ -222,7 +222,7 @@ PositiveMean <- function(b) {
   return(0)
 }
 
-### Average coefficient across all models
+### Get the average coefficients when variables were selected (non-zero slopes)
 coeff <- data.frame(melt(apply(bsts.reg$coefficients[-(1:burn),], 2, PositiveMean)))
 coeff$Variable <- as.character(row.names(coeff))
 ggplot(data=coeff, aes(x=Variable, y=value)) + 
@@ -317,7 +317,8 @@ prior <- SpikeSlabPrior(x=model.matrix(iclaimsNSA ~ ., data=initial.claims),
                         prior.information.weight = 200,
                         prior.inclusion.probabilities = prior.spikes,
                         optional.coefficient.estimate = prior.mean)
-                        
+ 
+### Run the model
 data(iclaims)
 ss <- AddLocalLinearTrend(list(), initial.claims$iclaimsNSA)
 ss <- AddSeasonal(ss, initial.claims$iclaimsNSA, nseasons = 52)
@@ -327,6 +328,7 @@ bsts.reg.priors <- bsts(iclaimsNSA ~ ., state.specification = ss,
                         prior=prior, 
                         ping=0, seed=2016)
 
+### Get the average coefficients when variables were selected (non-zero slopes)
 coeff <- data.frame(melt(apply(bsts.reg.priors$coefficients[-(1:burn),], 2, PositiveMean)))
 coeff$Variable <- as.character(row.names(coeff))
 ggplot(data=coeff, aes(x=Variable, y=value)) + 
