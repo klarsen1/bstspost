@@ -1,6 +1,6 @@
 ---
 title: "Sorry ARIMA, but I'm Going Bayesian"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -41,12 +41,11 @@ d1 <- data.frame(c(10^as.numeric(fitted(arima)), # fitted and predicted
                    as.Date(time(AirPassengers)))
 names(d1) <- c("Fitted", "Actual", "Date")
 
-MAPE <- filter(d1, year(Date)>1959) %>%
-        summarise(MAPE=abs(mean(1-Fitted/Actual)))
+MAPE <- filter(d1, year(Date)>1959) %>% summarise(MAPE=mean(abs(Actual-Fitted)/Actual))
 
 ggplot(data=d1, aes(x=Date)) +
   geom_line(aes(y=Actual, colour = "Actual"), size=1.2) +
-  geom_line(aes(y=Fitted, colour = "Fitted"), size=1.2) +
+  geom_line(aes(y=Fitted, colour = "Fitted"), size=1.2, linetype=2) +
   theme_bw() + theme(legend.title = element_blank()) + 
   ylab("") + xlab("") +
   geom_vline(xintercept=as.numeric(as.Date("1959-12-01")), linetype=2) +
@@ -107,7 +106,7 @@ d2 <- data.frame(
 names(d2) <- c("Fitted", "Actual", "Date")
 
 ### MAPE
-MAPE <- filter(d2, year(Date)>1959) %>% summarise(MAPE=abs(mean(1-Fitted/Actual)))
+MAPE <- filter(d2, year(Date)>1959) %>% summarise(MAPE=mean(abs(Actual-Fitted)/Actual))
 
 ### 95% forecast credible interval
 posterior.interval <- cbind.data.frame(
