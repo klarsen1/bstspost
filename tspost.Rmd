@@ -1,5 +1,5 @@
 ---
-title: "Forget ARIMA and Go Bayesian"
+title: "Sorry ARIMA, but I'm Going Bayesian"
 output: html_document
 ---
 
