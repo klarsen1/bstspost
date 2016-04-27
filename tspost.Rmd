@@ -17,7 +17,7 @@ So, how does one navigate such treacherous waters? You need business acumen, luc
 ### An ARIMA Model
 First, let's start by fitting a classical ARIMA model to the famous airline passenger dataset. The ARIMA model has the following characteristics:
 
-* First order differencing ($d=1$) and a moving average term ($q=1$)
+* First order differencing ($I=1$) and a moving average term ($q=1$)
 * Seasonal differencing and a seasonal MA term.
 * The year of 1960 was used as the holdout period for validation.
 * Using a log transformation to model the growth rate.
