@@ -1,6 +1,6 @@
 ---
 title: "Sorry ARIMA, but I'm Going Bayesian"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -28,6 +28,7 @@ library(bsts)
 library(dplyr)
 library(ggplot2)
 library(forecast)
+library(Boom)
 
 data("AirPassengers")
 Y <- window(AirPassengers, start=c(1949, 1), end=c(1959,12))
@@ -80,6 +81,7 @@ library(lubridate)
 library(bsts)
 library(dplyr)
 library(ggplot2)
+library(Boom)
 
 ### Model setup
 data("AirPassengers")
@@ -154,6 +156,7 @@ library(lubridate)
 library(bsts)
 library(ggplot2)
 library(reshape2)
+library(Boom)
 
 ### Set up the model
 data("AirPassengers")
@@ -203,6 +206,7 @@ library(lubridate)
 library(bsts)
 library(ggplot2)
 library(reshape2)
+library(Boom)
 
 ### Fit the model with regressors
 data(iclaims)
@@ -259,6 +263,7 @@ library(lubridate)
 library(bsts)
 library(ggplot2)
 library(reshape2)
+library(Boom)
 
 ### Fit the model with regressors
 data(iclaims)
@@ -297,6 +302,7 @@ library(lubridate)
 library(bsts)
 library(ggplot2)
 library(reshape2)
+library(Boom)
 
 data(iclaims)
 
